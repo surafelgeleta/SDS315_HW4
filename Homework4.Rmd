@@ -1,0 +1,97 @@
+---
+title: "Homework4"
+output: html_document
+---
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+# Calling packages
+library(tidyverse)
+library(mosaic)
+
+# Importing datasets
+
+letter_frequencies <- read.csv("C:\\Users\\gelet\\OneDrive\\Documents\\SDS315\\HW4\\letter_frequencies.csv")
+
+brown_sentences <- data.frame(readLines("C:\\Users\\gelet\\OneDrive\\Documents\\SDS315\\HW4\\brown_sentences.txt"))
+```
+
+# Problem 1
+
+## Null Hypothesis
+
+The null hypothesis is that across time, the proportion of Iron Bank securities trades that are flagged by the SEC's detection algorithm is 0.024.
+
+## Test Statistic
+
+The test statistic is the number of trades made from the Iron Bank that were flagged by the SEC's algorithm, which was 70 flagged trades out of 2021. This comes out to a proportion of flagged trades of `r 70/2021`.
+
+## Probability Distribution
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+# Seed for reproduction
+set.seed(2025)
+
+# Generates 100000 simulated counts of flagged trades out of 2021 trades
+sim_trades <- do(100000)*nflip(n = 2021, prob = 0.024)
+
+# Visualizing probability distribution of test statistic assuming null hypo is true
+ggplot(sim_trades, aes(x = nflip)) +
+  geom_histogram(color = "black", fill = "#0C7BDC") +
+  labs(x = "Simulated Count of Flagged Trades (out of 2021 trades)",
+       y = "Number of Simulations",
+       title = "Prob. Distr. of Flagged SEC Trades Under 2.4% Flag Rate")
+```
+The graph above displays the probability distribution of the test statistic assuming that Iron Bank securities trades are flagged at a rate of 2.4%.
+
+# P-Value
+
+The p-value or probability of the Iron Bank observing a count of at least 70 flagged trades out of 2021 by chance with a flag rate of 2.4% is `r sum(sim_trades >= 70)/100000`. 
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+sum(sim_trades >= 70)/100000
+```
+# Conclusion
+
+Using an threshold of 0.05 and considering that 0.00205 < 0.05, the p-value appears to be significant at the 95% level and may lend enough evidence to reject the null hypothesis that Iron Bank is flagged at a rate of 2.4% over time, but it may help to collect flagging data at different points of time to make a more conclusive decision about the null hypothesis's plausibility.
+
+# Problem 2
+
+## Null Hypothesis
+
+The null hypothesis is that Gourmet Bites's health code violation report rate is consistent over time as the average citywide report rate of 3%.
+
+## Test Statistic
+
+The test statistic is the count of health violation reports that Gourmet Bites had over the last years, totaling 8 reported violations out of 50 inspections and amounting to a `r 8/50*100`% health violation report rate.
+
+### Probability Distribution
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+# Simulating 2000000 counts of reported health code violations in 50 inspections
+sim_health <- do(200000)*nflip(n=50, prob=0.03)
+
+# Visualizing probability distribution of test statistic assuming null hypo is true
+ggplot(sim_health, aes(x = nflip)) +
+  geom_histogram(color = "black", fill = "#0C7BDC", binwidth = 1) +
+  labs(x = "Simulated Count of Reported Health Violations (out of 50 inspections)",
+       y = "Number of Simulations",
+       title = "Prob. Distr. of Reported Health Violations Under 3% Report Rate") +
+  scale_x_continuous(breaks = c(0,2,4,6,8))
+```
+
+The graph above displays the probability distribution of counts of reported health violations among 50 inspections if the citywide average report rate is 3%.
+
+## P-Value
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+sum(sim_health >= 8)/200000
+```
+The p-value or probability of a restaurant in the city observing a count of 8 or more reported health code violations out of 50 inspections by chance with a citywide report rate of 3% is 0.00012.
+
+## Conclusion
+
+Using a threshold of 0.05 and considering that the p-value of 0.00012 < 0.05, there is evidence to reject the null hypothesis that Gourmet Bites's health code violation report rate is consistent over time as the average citywide report rate of 3%, and it may warrant further investigation into Gourmet Bites particularly because actual health code violations may be unevaluated because the test statistic only includes those reported.
+
+# Problem 3
+
+
