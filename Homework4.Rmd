@@ -1,5 +1,9 @@
 ---
 title: "Homework4"
+author:
+  - "Surafel Geleta"
+  - "ssg2775"
+  - https://github.com/surafelgeleta/SDS315_HW4
 output:
   pdf_document: default
   html_document: default
