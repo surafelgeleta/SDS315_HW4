@@ -9,4 +9,5 @@
 - # Required Data
 - letter_frequencies.csv
 - brown_sentences.txt
+
 Both are available in the repository
