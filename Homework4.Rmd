@@ -7,12 +7,13 @@ output: html_document
 # Calling packages
 library(tidyverse)
 library(mosaic)
-
+library(kableExtra)
 # Importing datasets
 
 letter_frequencies <- read.csv("C:\\Users\\gelet\\OneDrive\\Documents\\SDS315\\HW4\\letter_frequencies.csv")
 
-brown_sentences <- data.frame(readLines("C:\\Users\\gelet\\OneDrive\\Documents\\SDS315\\HW4\\brown_sentences.txt"))
+brown_sentences <- data.frame(readLines("C:\\Users\\gelet\\OneDrive\\Documents\\SDS315\\HW4\\brown_sentences.txt")) %>% 
+  rename("sentences" = "readLines..C...Users..gelet..OneDrive..Documents..SDS315..HW4..brown_sentences.txt..")
 ```
 
 # Problem 1
@@ -41,18 +42,20 @@ ggplot(sim_trades, aes(x = nflip)) +
        y = "Number of Simulations",
        title = "Prob. Distr. of Flagged SEC Trades Under 2.4% Flag Rate")
 ```
+
 The graph above displays the probability distribution of the test statistic assuming that Iron Bank securities trades are flagged at a rate of 2.4%.
 
 # P-Value
 
-The p-value or probability of the Iron Bank observing a count of at least 70 flagged trades out of 2021 by chance with a flag rate of 2.4% is `r sum(sim_trades >= 70)/100000`. 
+The p-value or probability of the Iron Bank observing a count of at least 70 flagged trades out of 2021 by chance with a flag rate of 2.4% is `r sum(sim_trades >= 70)/100000`.
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
 sum(sim_trades >= 70)/100000
 ```
+
 # Conclusion
 
-Using an threshold of 0.05 and considering that 0.00205 < 0.05, the p-value appears to be significant at the 95% level and may lend enough evidence to reject the null hypothesis that Iron Bank is flagged at a rate of 2.4% over time, but it may help to collect flagging data at different points of time to make a more conclusive decision about the null hypothesis's plausibility.
+Using an threshold of 0.05 and considering that 0.00205 \< 0.05, the p-value appears to be significant at the 95% level and may lend enough evidence to reject the null hypothesis that Iron Bank is flagged at a rate of 2.4% over time, but it may help to collect flagging data at different points of time to make a more conclusive decision about the null hypothesis's plausibility.
 
 # Problem 2
 
@@ -86,12 +89,170 @@ The graph above displays the probability distribution of counts of reported heal
 ```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
 sum(sim_health >= 8)/200000
 ```
+
 The p-value or probability of a restaurant in the city observing a count of 8 or more reported health code violations out of 50 inspections by chance with a citywide report rate of 3% is 0.00012.
 
 ## Conclusion
 
-Using a threshold of 0.05 and considering that the p-value of 0.00012 < 0.05, there is evidence to reject the null hypothesis that Gourmet Bites's health code violation report rate is consistent over time as the average citywide report rate of 3%, and it may warrant further investigation into Gourmet Bites particularly because actual health code violations may be unevaluated because the test statistic only includes those reported.
+Using a threshold of 0.05 and considering that the p-value of 0.00012 \< 0.05, there is evidence to reject the null hypothesis that Gourmet Bites's health code violation report rate is consistent over time as the average citywide report rate of 3%, and it may warrant further investigation into Gourmet Bites particularly because actual health code violations may be unevaluated because the test statistic only includes those reported.
 
 # Problem 3
 
+## Null Hypothesis
 
+The null hypothesis is that the distribution of group counts among the impaneled jurors in the 20 trials is consistent with the multinomial distribution of groups in the county's eligible jury pool.
+
+## Test Statistic
+
+A chi-square test statistic is calculated as the test statistic. The expected counts of juror group distributions is calculated by multiplying the countywide eligible jury pool by the total number of impaneled jurors that were involved in the 20 trials overseen by the same judge. Using the chi-square goodness-of-fit test, the chi-square test statistic is **12.42639**.
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+# A vector with group distributions within the county's eligible jury pool
+# i.e. the expected multinomial distribution
+expected_jury_dist = c(Group1 = 0.3, Group2 = 0.25, Group3 = 0.2, Group4 = 0.15, Group5 = 0.1)
+
+# A vector with group counts among the 240 impaneled jurors across 20 trials
+observed_jury_counts = c(Group1 = 85, Group2 = 56, Group3 = 59, Group4 = 27, Group5 = 13)
+
+# A function that calculates the chi-square test statistic using the chi-square formula and given an observed and expected distributions
+chi_squared_statistic = function(observed, expected) {
+  sum((observed - expected)^2 / expected)
+}
+
+# Calling the function on the jury observed counts and expected jury counts
+# Expected jury counts calculated by multiplying expected distribution by 240 (the total number of jurors in the observed counts)
+chi_squared_statistic(observed_jury_counts, sum(observed_jury_counts)*expected_jury_dist)
+```
+
+## Probability Distribution
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+# This generates simulated jury group counts assuming that the expected jury group distribution is correct
+simulated_jury_counts = rmultinom(1, sum(observed_jury_counts), expected_jury_dist)
+
+# Calculates 100,000 chi-square test statistics, stores in object chi_square_jury
+chi_square_jury = do(100000)*{
+  # Each iteration, a simulated jury group count w/expected jury group distribution is   generated
+  simulated_jury_counts = rmultinom(1, sum(observed_jury_counts), expected_jury_dist)
+  # The simulated group counts are used as the observed counts, and the expected counts   are the same as before. A chi-square statistic is generated
+  chi_stat_jury = chi_squared_statistic(simulated_jury_counts,  sum(observed_jury_counts)*expected_jury_dist)
+}
+
+# Visualizing simulated chi-square statistic distribution assuming that the null hypothesis is true
+ggplot(chi_square_jury, aes(x = result)) +
+  geom_histogram(color = "black", fill = "#0C7BDC") +
+  labs(x = "Simulated Chi-Square Statistic",
+       y = "Number of Simulations",
+       title = "Simulated Dist. of Chi-Square Stats Under Expected Jury Group Distribution")
+```
+
+The graph above displays the distribution of 100000 simulated chi-square statistics under the assumption that the null hypothesis is true. What this means is that for each simulated chi-square statistic, the "observed" group counts were calculated using the multinomial expected distribution of the jury groups, as well as the size of the observed counts in the test statistic (240 jurors).
+
+## P-Value
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+sum(chi_square_jury >= 12.42639)/100000
+```
+
+The probability of observing a jury group distribution at least as extreme as the one seen among the 240 impaneled jurors by chance, assuming that the distribution of group counts are consistent with the expected multinomial jury group distribution, is **0.01425**.
+
+## Conclusion
+
+Using a threshold of 0.05, since $P(T\ | \ H_o) = 0.01425 < 0.05$, the data do support the idea that the observed group distribution of the jurors overseen by that particular judge are not consistent with, and significantly different from, the countywide eligible jury pool group distribution. While this probably warrants further investigation into the judge, it by no means establishes that the judge is engaging in systematic bias against or in favor of particular groups. Some explanations apart from bias in favor of and/or against groups for the difference in the judge's jury group distribution and the countywide jury pool group distribution include:
+
+-   The judge's working hours, which may result in the judge being more likely to select jurors that are available for jury duty for the particular trials the judge precedes. It may be the case that certain groups are disproportionately more or less likely to be available at certain times.
+
+-   The group distribution of the eligible jury pool may not be representative of the people who actually participate in jury duty in general. Eligible potential jurors often have certain reasons for not wanting to participate in jury duty (work, school, familial and homemaking responsibilities), and these reasons may vary from group to group.
+
+-   Potential jurors from certain groups may be more likely to exhibit "clear bias", thus resulting in them getting removed from jury duty "for cause". Moreover, it may also be the case that this particular judge has a lower bar for "clear bias", resulting in a juror group distribution notably different from the juror group distributions selected by other judges.
+
+In order to investigate this matter further, it might be helpful to look at differences among jurors selected and not selected by the judge when the jurors had similar backgrounds including availability hours and clear bias or lack thereof, similar to a blocking technique. Then, it may be easier to evaluate potential systematic bias on the judge's part when looking between jurors who would have no reason to be removed or not considered other than for availability (largely falling under "automatic exemption) or bias (falling under "for cause").
+
+# Problem 4
+
+## Part A
+
+```{r echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+brown_sentences <- brown_sentences %>% 
+  # Removing all non-alphabetical characters and replacing with spaces
+  mutate(sentences = str_replace_all(sentences, "[^[:alnum:]]", " "),
+  # Capitalizing all characters       
+         sentences = str_to_upper(sentences))
+
+# Ensures letter frequency probabilities add up to one
+letter_frequencies$Probability = letter_frequencies$Probability / sum(letter_frequencies$Probability)
+
+# Creates empty object where chi-square statistics under null hypothesis will be stored
+chi_stat_null = data.frame()
+
+# This for loop iterates through each sentence in brown_sentences
+for(i in brown_sentences$sentences){
+  # This counts the occurences of each letter in each sentence, displays counts as   a table
+  observed_counts = table(factor(strsplit(i, "")[[1]], levels = letter_frequencies$Letter))
+  # This counts the total number of letters in the sentence
+  total_letters = sum(observed_counts)
+  # Calculates expected letter counts for each sentence according to the pre-defined letter frequency distribution
+  expected_counts = total_letters*letter_frequencies$Probability
+  # Computes chi-squared GOF statistic of iterated sentence
+  chi_squared_stat = sum((observed_counts - expected_counts)^2 / expected_counts)
+  # Adds the chi-squared GOF statistic to an object chi_stat_null
+  chi_stat_null = rbind(chi_stat_null, chi_squared_stat)
+}
+
+# Visualizing distribution of chi-square statistic under null hypothesis
+ggplot(chi_stat_null, aes(x = X27.5691416584961)) +
+  geom_histogram(color = "black", fill = "#0C7BDC") +
+  labs(x = "Chi-Square Statistic",
+       y = "Number of Sentences",
+       title = "Chi-Square Dist. of Brown Corpus Sentences Against English Letter Dist.")
+```
+
+Above is the distribution of chi-square statistics across a collection of 56745 sentences and phrases from the Brown Corpus, with comparisons made between observed letter counts in Brown Corpus sentences and expected letter counts calculated using the number of letters in a sentences multiplied by the Project Gutenberg English letter frequency distribution. This distribution indicates the range of expected chi-squared statistics for standard, human-written English sentences according to Gutenberg's letter frequency distribution.
+
+## Part B
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+# Creating a vector that contains the ten sentences to be looped through
+llm_sentences = c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+llm_p_values = data.frame()
+
+for(sentence in llm_sentences){
+  # Removing all non alphabetical characters, capitalizing remaining characters
+  clean_sentence = {str_replace(sentence, "[^[:alnum:]]", " ")
+                    str_to_upper(sentence)}
+  # Counting number of each letter in each sentence
+  observed_counts = table(factor(strsplit(sentence, "")[[1]], levels =  letter_frequencies$Letter))
+  # Calculating total number of letters in each sentence
+  total_letters = sum(observed_counts)
+  # Calculating expected letter counts with Gutenberg English letter dist.
+  expected_counts = total_letters*letter_frequencies$Probability
+  # Computes chi-square GOF statistic of iterated sentence
+  chi_squared_stat = sum((observed_counts - expected_counts)^2 / expected_counts)
+  # Calculates probability of observing chi-square stat at least as extreme as test statistic by chance given null distribution is true
+  p_value = sum(chi_stat_null >= chi_squared_stat)/56745
+  # Appends p values to a data frame
+  llm_p_values = rbind(llm_p_values, p_value)
+}
+
+# Creating table with P-values
+knitr::kable(round(llm_p_values, 3),
+             col.names = c("Sentence", "P-Value"),
+             row.names = T,
+             caption = "P-Values of Chi-Square Test Statistics of Ten Sentences") %>% 
+  # Table aesthetic
+  kable_classic(full_width = T, html_font = "Cambria")
+```
+
+The sentence generated and watermarked by an LLM was most likely sentence 6. This is because it has the lowest p-value of all ten sentences, indicating the probability that the sentence's letter distribution or a letter distribution more extreme than that occurring by chance assuming that all of the above sentences were human-written and not generated by an LLM was 0.132.
